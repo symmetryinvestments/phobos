@@ -98,15 +98,31 @@ private:
     {
         // Microsoft uses hardware-incompatible custom constants in fenv.h (core.stdc.fenv).
         // Applies to both x87 status word (16 bits) and SSE2 status word(32 bits).
-        enum : int
+        version (ARM_Any)
         {
-            INEXACT_MASK   = 0x20,
-            UNDERFLOW_MASK = 0x10,
-            OVERFLOW_MASK  = 0x08,
-            DIVBYZERO_MASK = 0x04,
-            INVALID_MASK   = 0x01,
+            enum : int
+            {
+                INEXACT_MASK   = 0x10,
+                UNDERFLOW_MASK = 0x08,
+                OVERFLOW_MASK  = 0x04,
+                DIVBYZERO_MASK = 0x02,
+                INVALID_MASK   = 0x01,
 
-            EXCEPTIONS_MASK = 0b11_1111
+                EXCEPTIONS_MASK = 0b1_1111
+            }
+        }
+        else
+        {
+            enum : int
+            {
+                INEXACT_MASK   = 0x20,
+                UNDERFLOW_MASK = 0x10,
+                OVERFLOW_MASK  = 0x08,
+                DIVBYZERO_MASK = 0x04,
+                INVALID_MASK   = 0x01,
+
+                EXCEPTIONS_MASK = 0b11_1111
+            }
         }
         // Don't bother about subnormals, they are not supported on most CPUs.
         //  SUBNORMAL_MASK = 0x02;
@@ -614,14 +630,29 @@ nothrow @nogc:
     else version (CRuntime_Microsoft)
     {
         // Microsoft uses hardware-incompatible custom constants in fenv.h (core.stdc.fenv).
-        enum : RoundingMode
+        version (ARM_Any)
         {
-            roundToNearest = 0x0000,
-            roundDown      = 0x0400,
-            roundUp        = 0x0800,
-            roundToZero    = 0x0C00,
-            roundingMask   = roundToNearest | roundDown
-                             | roundUp | roundToZero,
+            enum : RoundingMode
+            {
+                roundToNearest = 0x0000,
+                roundDown      = 0x800000,
+                roundUp        = 0x400000,
+                roundToZero    = 0xC00000,
+                roundingMask   = roundToNearest | roundDown
+                                 | roundUp | roundToZero,
+            }
+        }
+        else
+        {
+            enum : RoundingMode
+            {
+                roundToNearest = 0x0000,
+                roundDown      = 0x0400,
+                roundUp        = 0x0800,
+                roundToZero    = 0x0C00,
+                roundingMask   = roundToNearest | roundDown
+                                 | roundUp | roundToZero,
+            }
         }
     }
     else
