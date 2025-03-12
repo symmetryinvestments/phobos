@@ -5303,3 +5303,12 @@ static:
         fromTid.send(thisTid, curlMessage(true)); // signal done
     }
 }
+
+// LDC: extra https unittest on Windows to test SSL with bundled libcurl.dll
+version (LDC) version (Windows)
+{
+    unittest
+    {
+        get("https://httpbin.org/get");
+    }
+}
