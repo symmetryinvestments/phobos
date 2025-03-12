@@ -4184,6 +4184,7 @@ private struct CurlAPI
     }
     __gshared API _api;
     __gshared void* _handle;
+    version (LDC) version (Windows) __gshared string _caBundlePath;
 
     static ref API instance() @property
     {
@@ -4262,6 +4263,38 @@ private struct CurlAPI
         enforce!CurlException(!_api.global_init(CurlGlobal.all),
                               "Failed to initialize libcurl");
 
+        /* Windows: Official libcurl builds (bundled with LDC) use a LibreSSL backend
+         * (no Windows-native Schannel), which requires setting the path to the bundled
+         * curl-ca-bundle.crt file. So check (once) if that file exists, in the same
+         * directory as libcurl.dll, and then use it later (in `Curl.initialize()`).
+         */
+        version (LDC) version (Windows)
+        {
+            import core.sys.windows.winbase;
+            import core.sys.windows.winnt;
+            import std.conv : to;
+            import std.file : exists;
+            import std.path : buildPath, dirName;
+
+            // the following was adopted from std.file.thisExePath
+            static string getPathToLibcurl(void* handle)
+            {
+                wchar[MAX_PATH] buf = void;
+                wchar[] buffer = buf[];
+                while (true) {
+                    const len = GetModuleFileNameW(handle, buffer.ptr, cast(DWORD) buffer.length);
+                    enforce!CurlException(len, "GetModuleFileName for libcurl failed");
+                    if (len != buffer.length)
+                        return buffer[0 .. len].to!string;
+                    buffer.length *= 2;
+                }
+            }
+
+            const caBundlePath = buildPath(getPathToLibcurl(handle).dirName, "curl-ca-bundle.crt");
+            if (caBundlePath.exists)
+                _caBundlePath = caBundlePath;
+        }
+
         static extern(C) void cleanup()
         {
             if (_handle is null) return;
@@ -4338,6 +4371,12 @@ struct Curl
         enforce!CurlException(handle, "Curl instance couldn't be initialized");
         _stopped = false;
         set(CurlOption.nosignal, 1);
+
+        version (LDC) version (Windows)
+        {
+            if (CurlAPI._caBundlePath.length)
+                set(CurlOption.cainfo, CurlAPI._caBundlePath);
+        }
     }
 
     ///
