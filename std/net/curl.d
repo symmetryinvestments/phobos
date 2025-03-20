@@ -5348,6 +5348,6 @@ version (LDC) version (Windows)
 {
     unittest
     {
-        get("https://httpbin.org/get");
+        get("https://www.google.com");
     }
 }
